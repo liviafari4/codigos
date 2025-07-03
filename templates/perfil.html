@@ -1,0 +1,11 @@
+<h1>Meu perfil Escolar</h1>
+
+{% if nome %}
+  Olá {{ nome }} do curso de {{ curso }}<br>
+  Seja bem vindo(a)!<br>
+
+{% else %}
+  Nenhum cadastro achado<br>
+  
+  <a href="/cadastro">Fazer cadastro</a>
+{% endif %}

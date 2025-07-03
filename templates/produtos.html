@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1 style="text-align: left;">Produtos</h1>
+    <ul>
+        {% for p in produtos %}
+            <li style="text-align: left;">{{ p.nome }} - R$ {{ p.preco }}
+                <form action="/adicionar" method="post">
+                    <input type="hidden" name="produto_id" value="{{ p.id }}">
+                    <button type="submit" style="text-align: left;">Adicionar</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+<a href="/carrinho">Ver Carrinho</a>
+
+</body>
+</html>

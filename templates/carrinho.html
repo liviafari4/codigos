@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Seu Carrinho</h1>
+
+    {% if itens %}
+        <ul>
+            {% for item in itens %}
+                <li>{{ item.nome }} - R$ {{ item.preco }}</li>
+            {% endfor %}
+        </ul>
+        <a href="{{ url_for('limpar_carrinho') }}">Esvaziar carrinho</a>
+        <br>
+
+    {% else %}
+        <p>O carrinho está vazio. Volte as compras!</p>
+    {% endif %}
+
+    <a href="{{ url_for('mostrar_produtos') }}">Voltar para produtos</a>
+    <a href="/finalizar_compra">Finalizar Compra</a>
+
+
+</body>
+</html>
