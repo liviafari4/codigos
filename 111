@@ -1,0 +1,145 @@
+database
+
+import sqlite3
+
+def obter_conexao():
+    conn = sqlite3.connect('jogo.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+
+
+
+schema
+
+drop table if exists personagens;
+
+create table if not exists personagens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    jogo_origem TEXT NOT NULL,
+    habilidade_principal TEXT NOT NULL
+);
+
+
+
+
+
+criar_banco.py (OPCIONALLLL!!!!!!! para rodar o schema)
+
+import sqlite3
+
+BANCO = 'schema.sql'
+
+conexao = sqlite3.connect('jogo.db')
+
+with open(BANCO) as f:
+    conexao.executescript(f.read())
+
+conexao.close()
+
+
+
+
+
+
+
+templates
+
+
+base
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        {% block title %}
+            Jogo
+        {% endblock %}
+    </title>
+</head>
+<body style="background-color: pink;">
+
+    <h1>
+        {% block pagina %}
+        {% endblock %}
+    </h1>
+
+    {% block conteudo %}
+    {% endblock %}
+    
+</body>
+</html>
+
+
+
+
+index
+
+{% extends 'base.html' %}
+
+{% block pagina %}
+Página Inicial
+{% endblock %}
+
+{% block conteudo %}
+<p>Bem-vindo à aplicação de cadastro de personagens.</p>
+
+<a href="{{ url_for('novo_personagem') }}">Cadastrar Novo Personagem</a><br>
+<a href="{{ url_for('listar_personagens') }}">Ver Lista de Personagens</a>
+{% endblock %}
+
+
+
+
+novo_personagem
+
+{% extends 'base.html' %}
+
+{% block pagina %}
+Novo Personagem
+{% endblock %}
+
+{% block conteudo %}
+<form action="{{ url_for('novo_personagem') }}" method="POST">
+    <input type="text" name="nome" placeholder="Nome do Personagem"><br>
+    <input type="text" name="jogo" placeholder="Jogo de Origem"><br>
+    <input type="text" name="habilidade" placeholder="Habilidade Principal"><br>
+    <button>Cadastrar</button>
+</form>
+{% endblock %}
+
+
+
+
+listar_personagem
+
+{% extends 'base.html' %}
+
+{% block pagina %}
+Lista de Personagens
+{% endblock %}
+
+{% block conteudo %}
+<table border="1">
+    <tr>
+        <th>Nome</th>
+        <th>Jogo de Origem</th>
+        <th>Habilidade Principal</th>
+    </tr>
+    {% for personagem in lista %}
+    <tr>
+        <td>{{ personagem.nome }}</td>
+        <td>{{ personagem.jogo_origem }}</td>
+        <td>{{ personagem.habilidade_principal }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
+
+
+
+
