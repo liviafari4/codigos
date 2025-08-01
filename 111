@@ -191,3 +191,18 @@ Lista de Personagens
 
 
 
+
+
+projeto_personagens/
+│
+├── app.py
+├── database.py
+├── criar_banco.py       ← opcional
+├── schema.sql
+│
+├── templates/
+│   ├── base.html
+│   ├── index.html
+│   ├── listar_personagens.html
+│   └── novo_personagem.html
+
