@@ -1,0 +1,331 @@
+1. Visão geral
+O projeto é uma aplicação web feita com Flask que tem:
+
+Login e cadastro de usuários
+
+Proteção de páginas com Flask-Login
+
+Armazenamento de usuários em um banco SQLite
+
+Templates HTML com herança (base.html)
+
+Sessões (session) para guardar dados temporários no navegador
+
+Rotas para cadastrar, logar, deslogar e deletar usuários
+
+2. Arquivo app.py
+Esse é o coração da aplicação Flask.
+
+python
+Copiar
+Editar
+from flask import Flask, render_template, url_for, request, flash, session, redirect
+from flask_login import LoginManager, login_required, login_user, logout_user
+from modelos import User
+from database import obter_conexao
+import sqlite3
+Flask → framework para criar aplicações web.
+
+render_template → carrega arquivos HTML da pasta templates.
+
+url_for → cria URLs dinamicamente sem precisar escrever o link direto.
+
+request → pega dados enviados por formulários (POST ou GET).
+
+flash → envia mensagens temporárias (erros, avisos).
+
+session → armazena informações temporárias no navegador (cookies).
+
+redirect → redireciona para outra rota.
+
+LoginManager → gerencia login e logout automaticamente.
+
+login_required → protege rotas que só podem ser acessadas por usuários logados.
+
+login_user → faz login de um usuário.
+
+logout_user → faz logout.
+
+User → classe do nosso modelo de usuário.
+
+obter_conexao → função que abre conexão com o banco SQLite.
+
+python
+Copiar
+Editar
+login_manager = LoginManager()
+app = Flask(__name__)
+app.secret_key = 'guilherme'
+login_manager.init_app(app)
+Cria o LoginManager para gerenciar logins.
+
+Flask(__name__) → cria o app.
+
+secret_key → usada para proteger sessões e cookies.
+
+login_manager.init_app(app) → conecta o Flask-Login com a aplicação.
+
+python
+Copiar
+Editar
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+Função obrigatória para o Flask-Login.
+
+Recebe o user_id salvo na sessão e busca o usuário no banco.
+
+Rota /
+python
+Copiar
+Editar
+@app.route('/')
+def index():
+    if 'usuarios' not in session:
+        usuarios = {}
+        session['usuarios'] = usuarios
+    return render_template('index.html')
+Página inicial.
+
+Se a sessão não tiver um dicionário de usuários (usuarios), cria um vazio.
+
+Renderiza index.html.
+
+Rota /login
+python
+Copiar
+Editar
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == "POST":
+        email = request.form['email']
+        senha = request.form['senha']
+
+        conexao = obter_conexao()
+        sql = "SELECT * FROM users WHERE email = ?"
+        resultado = conexao.execute(sql, (email,)).fetchone()
+        conexao.close()
+        
+        if resultado and resultado['senha'] == senha:
+            user = User(nome=resultado['email'], senha=resultado['senha'])
+            user.id = resultado['email']
+            login_user(user)
+            return redirect(url_for('dash'))
+
+        flash('Houve errro: senha ou login inválidos.', category='error')
+        return redirect(url_for('login'))
+
+    return render_template('login.html')
+GET → Mostra o formulário de login.
+
+POST → Pega email e senha enviados.
+
+Consulta no banco se o usuário existe.
+
+Se existir e a senha bater → cria User, faz login_user(user), redireciona para /dash.
+
+Se não → mostra mensagem de erro (flash) e recarrega a página.
+
+Rota /register
+python
+Copiar
+Editar
+@app.route('/register', methods=['POST','GET'])
+def register():
+    if request.method == "POST":
+        email = request.form['email']
+        senha= request.form['senha']
+       
+        conexao = obter_conexao()
+        sql = "SELECT * FROM users WHERE email = ?"
+        resultado = conexao.execute(sql, (email,)).fetchone()
+        
+        if not resultado:
+            sql = "INSERT INTO users(email, senha) VALUES(?,?)"
+            conexao.execute(sql, (email, senha))
+            conexao.commit()
+            conexao.close()
+
+            user = User(nome=email, senha=senha)
+            user.id = email
+            login_user(user)
+
+            flash('Cadastro realizado com sucesso', category='error')
+            return redirect(url_for('dash'))
+            
+        conexao.close()
+        flash('Erro ao realizar cadastro', category='error')
+        return redirect(url_for('register'))
+
+    return render_template('register.html')
+GET → Mostra o formulário de cadastro.
+
+POST → Pega email e senha.
+
+Verifica se já existe no banco.
+
+Se não existir → insere no banco, faz login e redireciona para /dash.
+
+Se existir → mostra erro (flash).
+
+Rota /dash (protegida)
+python
+Copiar
+Editar
+@app.route('/dash')
+@login_required
+def dash():
+    return render_template('dashboard.html', lista_usuarios=User.all())
+Só acessa se estiver logado.
+
+Mostra lista de usuários armazenada na session.
+
+Rota /logout
+python
+Copiar
+Editar
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+Faz logout do usuário e volta para a página inicial.
+
+Rota /delete
+python
+Copiar
+Editar
+@app.route('/delete', methods=['POST'])
+def delete():
+    nome = request.form['user']
+    User.delete(nome)
+    return redirect(url_for('dash'))
+Recebe o nome do usuário pelo formulário e o remove da lista de sessão.
+
+3. Arquivo modelos.py
+python
+Copiar
+Editar
+from flask_login import UserMixin
+from flask import session
+from database import obter_conexao
+
+class User(UserMixin):
+    email: str
+    def __init__(self, nome, senha):
+        self.nome = nome
+        self.senha = senha
+UserMixin → adiciona métodos prontos para integração com Flask-Login.
+
+__init__ → define nome e senha do usuário.
+
+python
+Copiar
+Editar
+    @classmethod
+    def get(cls, user_id):
+        conexao = obter_conexao()
+        sql = "SELECT * FROM users WHERE email = ?"
+        resultado = conexao.execute(sql, (user_id,) ).fetchone()
+        user = User(nome=resultado['email'], senha=resultado['senha'])
+        user.id = resultado['email']
+        return user
+Busca um usuário no banco pelo email (user_id).
+
+python
+Copiar
+Editar
+    @classmethod
+    def all(cls):
+        return session.get('usuarios')
+Retorna todos os usuários salvos na sessão.
+
+python
+Copiar
+Editar
+    @classmethod
+    def find_email(cls, email):
+        pass
+Método ainda não implementado.
+
+python
+Copiar
+Editar
+    def save(self):
+        lista_usuarios = session.get('usuarios')
+        lista_usuarios[self.nome] = self.senha
+        session['usuarios'] = lista_usuarios
+Salva o usuário na sessão (session['usuarios']).
+
+python
+Copiar
+Editar
+    @classmethod
+    def delete(cls, email):
+        lista_usuarios = session.get('usuarios')
+        lista_usuarios.pop(email)
+        session['usuarios'] = lista_usuarios
+Remove o usuário da sessão pelo email.
+
+4. Arquivo database.py
+python
+Copiar
+Editar
+import sqlite3
+
+def obter_conexao():
+    conexao = sqlite3.connect('banco.db')
+    conexao.row_factory = sqlite3.Row
+    return conexao
+Abre conexão com o banco banco.db.
+
+row_factory → faz com que cada linha seja retornada como dicionário (resultado['email']).
+
+5. Arquivo iniciar.py
+python
+Copiar
+Editar
+import sqlite3
+BANCO='schema.sql'
+conexao = sqlite3.connect('banco.db')
+with open(BANCO) as f:
+    conexao.executescript(f.read())
+conexao.close()
+Cria o banco e executa o script schema.sql para criar as tabelas.
+
+6. Arquivo schema.sql
+sql
+Copiar
+Editar
+create table if not exists users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    senha TEXT NOT NULL
+);
+Cria tabela users com id, email e senha.
+
+7. Templates HTML
+Eles usam Jinja2 para herança e inclusão.
+
+base.html → layout padrão.
+
+index.html → links para login e cadastro.
+
+login.html → formulário de login + mensagens de erro.
+
+register.html → formulário de cadastro + mensagens de erro.
+
+dashboard.html → mostra usuário logado e lista de outros.
+
+componentes/erro.html → exibe mensagens flash em vermelho.
+
+8. Fluxo resumido do sistema
+Usuário acessa / e pode ir para login ou cadastro.
+
+Cadastro salva no banco e já loga o usuário.
+
+Login verifica no banco e, se correto, abre o dashboard.
+
+Dashboard mostra usuários salvos na session e permite excluir.
+
+Logout encerra a sessão do usuário.
